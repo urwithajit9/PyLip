@@ -1,5 +1,6 @@
 import sys
-from PySide import QtGui
+from PySide import QtGui,QtCore
+import configWindow
 
 class MainWindow(QtGui.QMainWindow):
 	
@@ -12,9 +13,9 @@ class MainWindow(QtGui.QMainWindow):
 		self.setWindowTitle("PyLip")
 		self.setGeometry(100,100,450,350)
 		self.show()
-
-		statusbar = self.statusBar()
-		statusbar.showMessage('Application under intial stage of development')
+		self.config = None 
+		self.statusbar = self.statusBar()
+		self.statusbar.showMessage('Application under intial stage of development')
 		
 
 		menubar = self.menuBar()
@@ -37,6 +38,7 @@ class MainWindow(QtGui.QMainWindow):
 		
 		configureAction = QtGui.QAction(QtGui.QIcon('configure.png'),'&Configure',self)
 		configureAction.setStatusTip('Configure the application')
+		configureAction.triggered.connect(self.showConfigureWindow)
 
 		exitAction = QtGui.QAction(QtGui.QIcon('exit.png'),'&Exit',self)
 		exitAction.setStatusTip('Exit the application')
@@ -47,6 +49,9 @@ class MainWindow(QtGui.QMainWindow):
 		fileMenu.addAction(exitAction)
 
 		# Video Menu Actions
+		playVideoAction = QtGui.QAction(QtGui.QIcon('playvideo.png'),'&PlayVideo',self)
+		playVideoAction.setStatusTip('Play from the selected video source')
+
 		startRecordAction = QtGui.QAction(QtGui.QIcon('start.png'),'&Record',self)
 		startRecordAction.setStatusTip('records video from selected device')
 
@@ -56,6 +61,7 @@ class MainWindow(QtGui.QMainWindow):
 		generateAudioAction = QtGui.QAction(QtGui.QIcon('generataudio.png'),'&genearateAudio',self)
 		generateAudioAction.setStatusTip('Produce the audio')
 
+		videoMenu.addAction(playVideoAction)
 		videoMenu.addAction(startRecordAction)
 		videoMenu.addAction(stopRecordAction)
 		videoMenu.addAction(generateAudioAction)
@@ -71,11 +77,20 @@ class MainWindow(QtGui.QMainWindow):
 		helpMenu.addAction(aboutAction)
 		
 	def fileSourceActionTriggered(self):
-		print 'Hello World'	
+		 fname, _ = QtGui.QFileDialog.getOpenFileName(self, 'Open file',
+                    '/home')
+		 print fname, 'is selected'
+		 self.statusbar.showMessage(fname +'is selected as video source')
 
 	def cameraSourceActionTriggered(self):
+		self.statusbar.showMessage('Camera is selected to as video source')
 		print 'Camera Source Selected'
 
+	def showConfigureWindow(self):
+		self.statusbar.showMessage('Opening the configure Window')
+		self.config = configWindow.ConfigureWindow()
+		self.config.show()
+		
 def main():
 	app = QtGui.QApplication(sys.argv)
 	mainWindow = MainWindow()
