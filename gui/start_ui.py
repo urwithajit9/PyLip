@@ -1,25 +1,15 @@
 import sys
 from PySide import QtGui,QtCore
 import configWindow,aboutWindow
-import subprocess
-class AboutDialog(QtGui.QWidget):
-	def __init__(self):
-		super(AboutDialog,self).__init__()
-		self.initUI()
-	def initUI(self):
-		self.setWindowTitle('About PyLip')
-		#self.label = QtGui.QLabel('<b> PyLip</b> <br> This is a incomplete project',self)
-		self.OK = QtGui.QPushButton('OK',self)
-		self.OK.resize(self.OK.sizeHint())
-		self.OK.move(50,50)
-		print 'What the hell happening here'
-		self.setGeometry(100,100,300,400)
-		
+from imgp.ImgP import UpdateFrame
+import threading,pickle
 class MainWindow(QtGui.QMainWindow):
 	
 	def __init__(self):
 		super(MainWindow,self).__init__()
 		self.initUI()
+		self.isCamera = False
+		self.loadConfiguration()
 
 	def initUI(self):
 		self.setWindowTitle("PyLip")
@@ -29,74 +19,85 @@ class MainWindow(QtGui.QMainWindow):
 		self.statusbar = self.statusBar()
 		self.statusbar.showMessage('Application under intial stage of development')
 		
+		self.imgLabel = QtGui.QLabel(self)
+		self.imgLabel.text = "Makes me tired. Meet me at hell"
+		self.imgLabel.resize(self.imgLabel.sizeHint())
+		self.imgLabel.show()
+		self.setCentralWidget(self.imgLabel)
+		#self.hbox = QtGui.QHBoxLayout(self)
+		#self.hbox.addStretch(1)
+		#self.hbox.addWidget(self.imgLabel)
+		#self.setLayout(self.hbox)
 
-		menubar = self.menuBar()
-		fileMenu = menubar.addMenu('&File')
-		videoMenu = menubar.addMenu('&Video')
-		helpMenu = menubar.addMenu('&Help')
+		self.menubar = self.menuBar()
+		self.fileMenu = self.menubar.addMenu('&File')
+		self.videoMenu = self.menubar.addMenu('&Video')
+		self.helpMenu = self.menubar.addMenu('&Help')
 
 		#FileMenu Actions
-		videoSourceAction = QtGui.QAction(QtGui.QIcon('vidoesource.png'),'Video &Source',self)
-		videoSourceAction.setStatusTip('Choose the video source')
+		self.videoSourceAction = QtGui.QAction(QtGui.QIcon('vidoesource.png'),'Video &Source',self)
+		self.videoSourceAction.setStatusTip('Choose the video source')
 
-		videoSourceMenu = QtGui.QMenu()
-		videoSourceAction.setMenu(videoSourceMenu)
-		fileSourceAction = QtGui.QAction(QtGui.QIcon('videofile.png'),'Video &File',self)
-		fileSourceAction.triggered.connect(self.fileSourceActionTriggered)
+		self.videoSourceMenu = QtGui.QMenu()
+		self.videoSourceAction.setMenu(self.videoSourceMenu)
+		self.fileSourceAction = QtGui.QAction(QtGui.QIcon('videofile.png'),'Video &File',self)
+		self.fileSourceAction.triggered.connect(self.fileSourceActionTriggered)
 
-		cameraSourceAction = QtGui.QAction(QtGui.QIcon('webcamera.png'),'&WebCamera',self)
-		videoSourceMenu.addAction(fileSourceAction)
-		videoSourceMenu.addAction(cameraSourceAction)
+		self.cameraSourceAction = QtGui.QAction(QtGui.QIcon('webcamera.png'),'&WebCamera',self)
+		self.videoSourceMenu.addAction(self.fileSourceAction)
+		self.videoSourceMenu.addAction(self.cameraSourceAction)
 		
-		configureAction = QtGui.QAction(QtGui.QIcon('configure.png'),'&Configure',self)
-		configureAction.setStatusTip('Configure the application')
-		configureAction.triggered.connect(self.showConfigureWindow)
+		self.configureAction = QtGui.QAction(QtGui.QIcon('configure.png'),'&Configure',self)
+		self.configureAction.setStatusTip('Configure the application')
+		self.configureAction.triggered.connect(self.showConfigureWindow)
 
-		exitAction = QtGui.QAction(QtGui.QIcon('exit.png'),'&Exit',self)
-		exitAction.setStatusTip('Exit the application')
-		exitAction.triggered.connect(self.close)
+		self.exitAction = QtGui.QAction(QtGui.QIcon('exit.png'),'&Exit',self)
+		self.exitAction.setStatusTip('Exit the application')
+		self.exitAction.triggered.connect(self.close)
 
-		fileMenu.addAction(videoSourceAction)
-		fileMenu.addAction(configureAction)
-		fileMenu.addAction(exitAction)
+		self.fileMenu.addAction(self.videoSourceAction)
+		self.fileMenu.addAction(self.configureAction)
+		self.fileMenu.addAction(self.exitAction)
 
 		# Video Menu Actions
-		playVideoAction = QtGui.QAction(QtGui.QIcon('playvideo.png'),'&PlayVideo',self)
-		playVideoAction.setStatusTip('Play from the selected video source')
+		self.playVideoAction = QtGui.QAction(QtGui.QIcon('playvideo.png'),'&PlayVideo',self)
+		self.playVideoAction.setStatusTip('Play from the selected video source')
+		self.playVideoAction.triggered.connect(self.playVideo)
 
-		startRecordAction = QtGui.QAction(QtGui.QIcon('start.png'),'&Record',self)
-		startRecordAction.setStatusTip('records video from selected device')
+		self.startRecordAction = QtGui.QAction(QtGui.QIcon('start.png'),'&Record',self)
+		self.startRecordAction.setStatusTip('records video from selected device')
 
-		stopRecordAction = QtGui.QAction(QtGui.QIcon('stop.png'),'&Stop',self)
-		stopRecordAction.setStatusTip('Stop recording')
+		self.stopRecordAction = QtGui.QAction(QtGui.QIcon('stop.png'),'&Stop',self)
+		self.stopRecordAction.setStatusTip('Stop recording')
 
-		generateAudioAction = QtGui.QAction(QtGui.QIcon('generataudio.png'),'&genearateAudio',self)
-		generateAudioAction.setStatusTip('Produce the audio')
+		self.generateAudioAction = QtGui.QAction(QtGui.QIcon('generataudio.png'),'&genearateAudio',self)
+		self.generateAudioAction.setStatusTip('Produce the audio')
 
-		videoMenu.addAction(playVideoAction)
-		videoMenu.addAction(startRecordAction)
-		videoMenu.addAction(stopRecordAction)
-		videoMenu.addAction(generateAudioAction)
+		self.videoMenu.addAction(self.playVideoAction)
+		self.videoMenu.addAction(self.startRecordAction)
+		self.videoMenu.addAction(self.stopRecordAction)
+		self.videoMenu.addAction(self.generateAudioAction)
 
 		#Exit Menu Actions
-		docbookAction = QtGui.QAction(QtGui.QIcon('docbook.png'),'&Documentation',self)
-		docbookAction.setStatusTip('Show the html documention')
-		#docbookAction.triggered.connect(self.openHelp)
+		self.docbookAction = QtGui.QAction(QtGui.QIcon('docbook.png'),'&Documentation',self)
+		self.docbookAction.setStatusTip('Show the html documention')
 		
-		aboutAction = QtGui.QAction(QtGui.QIcon('about.png'),'&About',self)
-		aboutAction.setStatusTip('About window')
-		aboutAction.triggered.connect(self.showAboutWindow)
+		self.aboutAction = QtGui.QAction(QtGui.QIcon('about.png'),'&About',self)
+		self.aboutAction.setStatusTip('About window')
+		self.aboutAction.triggered.connect(self.showAboutWindow)
 
-		helpMenu.addAction(docbookAction)
-		helpMenu.addAction(aboutAction)
+		self.helpMenu.addAction(self.docbookAction)
+		self.helpMenu.addAction(self.aboutAction)
+		self.helpMenu.triggered.connect(self.openHelp)
 		
 	def fileSourceActionTriggered(self):
-		 fname, _ = QtGui.QFileDialog.getOpenFileName(self, 'Open file',
-                    '/home')
-		 print fname, 'is selected'
-		 self.statusbar.showMessage(fname +'is selected as video source')
+		self.isCamera = False
+		self.fname, _ = QtGui.QFileDialog.getOpenFileName(self, 'Open file','/home')
+		print self.fname, 'is selected'
+		self.statusbar.showMessage(self.fname +'is selected as video source')
 
 	def cameraSourceActionTriggered(self):
+		self.isCamera = True
 		self.statusbar.showMessage('Camera is selected to as video source')
 		print 'Camera Source Selected'
 
@@ -109,9 +110,20 @@ class MainWindow(QtGui.QMainWindow):
 		self.statusbar.showMessage('Opening The about Window')
 		self.about= aboutWindow.AboutWindow()	
 		self.about.show()
-	
-		
-		
+
+	def openHelp(self):
+		QtGui.QDesktopServices.openUrl('file://help.html');
+
+	def playVideo(self):	
+		self.stop = threading.Event()
+		updateFrame = UpdateFrame(self.stop,self.fname,self.isCamera,self.options['camerano'],self.imgLabel)
+		updateFrame.start()
+
+	def loadConfiguration(self):
+		fin = open('config.pickle','r')
+		self.options = pickle.load(fin)
+		print self.options
+		fin.close()
 def main():
 	app = QtGui.QApplication(sys.argv)
 	mainWindow = MainWindow()
