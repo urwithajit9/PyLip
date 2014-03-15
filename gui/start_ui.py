@@ -1,12 +1,24 @@
 import sys
 from PySide import QtGui,QtCore
-import configWindow
-
+import configWindow,aboutWindow
+import subprocess
+class AboutDialog(QtGui.QWidget):
+	def __init__(self):
+		super(AboutDialog,self).__init__()
+		self.initUI()
+	def initUI(self):
+		self.setWindowTitle('About PyLip')
+		#self.label = QtGui.QLabel('<b> PyLip</b> <br> This is a incomplete project',self)
+		self.OK = QtGui.QPushButton('OK',self)
+		self.OK.resize(self.OK.sizeHint())
+		self.OK.move(50,50)
+		print 'What the hell happening here'
+		self.setGeometry(100,100,300,400)
+		
 class MainWindow(QtGui.QMainWindow):
 	
 	def __init__(self):
 		super(MainWindow,self).__init__()
-
 		self.initUI()
 
 	def initUI(self):
@@ -69,9 +81,11 @@ class MainWindow(QtGui.QMainWindow):
 		#Exit Menu Actions
 		docbookAction = QtGui.QAction(QtGui.QIcon('docbook.png'),'&Documentation',self)
 		docbookAction.setStatusTip('Show the html documention')
+		#docbookAction.triggered.connect(self.openHelp)
 		
 		aboutAction = QtGui.QAction(QtGui.QIcon('about.png'),'&About',self)
 		aboutAction.setStatusTip('About window')
+		aboutAction.triggered.connect(self.showAboutWindow)
 
 		helpMenu.addAction(docbookAction)
 		helpMenu.addAction(aboutAction)
@@ -90,6 +104,13 @@ class MainWindow(QtGui.QMainWindow):
 		self.statusbar.showMessage('Opening the configure Window')
 		self.config = configWindow.ConfigureWindow()
 		self.config.show()
+	
+	def showAboutWindow(self):
+		self.statusbar.showMessage('Opening The about Window')
+		self.about= aboutWindow.AboutWindow()	
+		self.about.show()
+	
+		
 		
 def main():
 	app = QtGui.QApplication(sys.argv)
