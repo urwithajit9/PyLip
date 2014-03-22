@@ -1,6 +1,7 @@
 import cv2
 import threading,time
 from PySide import QtGui,QtCore
+from roifinder import ROIFind
 class UpdateFrame(QtCore.QThread,QtCore.QObject):
 	frameSignal = QtCore.Signal(QtGui.QImage)
 	def __init__(self,stop_flag,fileName,isCamera,cameraNo,wui):
@@ -82,6 +83,7 @@ class ProcessedFrame(QtCore.QThread,QtCore.QObject):
 		self.isCamera = isCamera
 		self.cameraNo = cameraNo
 		self.frameSignal.connect(self.wui.updateOneFrame)
+		self.roifind = ROIFind()
  
 	def run(self):
 		if self.isCamera == True:
@@ -95,6 +97,7 @@ class ProcessedFrame(QtCore.QThread,QtCore.QObject):
 				print 'Video Source reached end or disconnected'
 				self.wui.stopVideo()
 				break
+			frame,match = self.roifind.getMarkedFrame(frame)
 			d = cv2.cvtColor(frame,cv2.cv.CV_BGR2RGB)
 			self.qimg = QtGui.QImage(d.data,d.shape[1],d.shape[0],QtGui.QImage.Format_RGB888)
 			self.frameSignal.emit(self.qimg)
